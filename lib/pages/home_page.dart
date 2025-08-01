@@ -6,9 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-import 'package:flutter/scheduler.dart';
-import 'package:flutter/material.dart';
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -25,8 +22,6 @@ class _HomePageState extends State<HomePage> with RouteAware {
   bool _quoteLoading = true;
 
   double _quoteOpacity = 0.0;
-  double _cardOpacity = 0.0;
-  Offset _cardOffset = const Offset(0, 0.1);
 
   final RouteObserver<ModalRoute<void>> routeObserver =
       RouteObserver<ModalRoute<void>>();

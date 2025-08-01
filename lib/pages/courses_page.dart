@@ -2,8 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class CoursesPage extends StatelessWidget {
+class CoursesPage extends StatefulWidget {
   const CoursesPage({super.key});
+
+  @override
+  State<CoursesPage> createState() => _CoursesPageState();
+}
+
+class _CoursesPageState extends State<CoursesPage> {
+  late final String currentSemester;
+  final Set<String> expandedSemesters = {};
+
+  @override
+  void initState() {
+    super.initState();
+    currentSemester = getCurrentSemesterKey();
+    expandedSemesters.add(currentSemester);
+  }
+
+  String getCurrentSemesterKey() {
+    final now = DateTime.now();
+    final year = now.year;
+    final month = now.month;
+    String term;
+    if (month >= 1 && month <= 4) {
+      term = 'Spring';
+    } else if (month >= 5 && month <= 7) {
+      term = 'Summer';
+    } else {
+      term = 'Fall';
+    }
+    return '$term $year';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -99,6 +129,146 @@ class CoursesPage extends StatelessWidget {
       );
     }
 
+    void _showEditCourseDialog(BuildContext context, DocumentSnapshot doc) {
+      final data = doc.data() as Map<String, dynamic>;
+
+      final _nameController = TextEditingController(text: data['name']);
+      final _creditController = TextEditingController(
+        text: data['creditHours'].toString(),
+      );
+      String selectedTerm = data['semester']['term'];
+      int selectedYear = data['semester']['year'];
+
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Edit Course'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(labelText: 'Course Name'),
+                  ),
+                  TextField(
+                    controller: _creditController,
+                    decoration: const InputDecoration(
+                      labelText: 'Credit Hours',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Term'),
+                    value: selectedTerm,
+                    items: ['Spring', 'Summer', 'Fall']
+                        .map(
+                          (term) =>
+                              DropdownMenuItem(value: term, child: Text(term)),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) selectedTerm = value;
+                    },
+                  ),
+                  TextField(
+                    decoration: const InputDecoration(labelText: 'Year'),
+                    keyboardType: TextInputType.number,
+                    controller: TextEditingController(
+                      text: selectedYear.toString(),
+                    ),
+                    onChanged: (val) => selectedYear = int.tryParse(val) ?? 0,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('Confirm Deletion'),
+                      content: const Text(
+                        'Are you sure you want to delete this course?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true) {
+                    final deletedData = doc.data() as Map<String, dynamic>;
+                    final deletedRef = doc.reference;
+
+                    await deletedRef.delete();
+                    Navigator.pop(context);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Course deleted'),
+                        backgroundColor: Colors.redAccent,
+                        action: SnackBarAction(
+                          label: 'Undo',
+                          textColor: Colors.white,
+                          onPressed: () async {
+                            await deletedRef.set(deletedData);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Course restored'),
+                                backgroundColor: Colors.green,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                        ),
+                        duration: const Duration(seconds: 5),
+                      ),
+                    );
+                  }
+                },
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final name = _nameController.text.trim();
+                  final credit = int.tryParse(_creditController.text.trim());
+
+                  if (name.isNotEmpty && credit != null && selectedYear > 0) {
+                    await doc.reference.update({
+                      'name': name,
+                      'creditHours': credit,
+                      'semester': {'term': selectedTerm, 'year': selectedYear},
+                    });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Course updated'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your Courses'),
@@ -141,7 +311,6 @@ class CoursesPage extends StatelessWidget {
             return const Center(child: Text('No courses found.'));
           }
 
-          // Group by semester
           final Map<String, List<QueryDocumentSnapshot>> grouped = {};
           for (var doc in docs) {
             final data = doc.data() as Map<String, dynamic>;
@@ -156,45 +325,54 @@ class CoursesPage extends StatelessWidget {
               final semester = entry.key;
               final semesterCourses = entry.value;
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(semester, style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 4),
-                  ...semesterCourses.map((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final name = data['name'] ?? 'Unnamed';
-                    final credit = data['creditHours'] ?? '?';
-                    final completed = data['isCompleted'] ?? false;
+              return ExpansionTile(
+                title: Text(
+                  semester,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                initiallyExpanded: expandedSemesters.contains(semester),
+                onExpansionChanged: (isExpanded) {
+                  setState(() {
+                    if (isExpanded) {
+                      expandedSemesters.add(semester);
+                    } else {
+                      expandedSemesters.remove(semester);
+                    }
+                  });
+                },
+                children: semesterCourses.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final name = data['name'] ?? 'Unnamed';
+                  final credit = data['creditHours'] ?? '?';
+                  final completed = data['isCompleted'] ?? false;
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      child: ListTile(
-                        leading: Icon(
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: ListTile(
+                      leading: IconButton(
+                        icon: Icon(
                           completed
                               ? Icons.check_circle
                               : Icons.radio_button_unchecked,
                           color: completed ? Colors.green : null,
                         ),
-                        title: Text(name),
-                        subtitle: Text('$credit credit hours'),
-                        trailing: IconButton(
-                          icon: Icon(
-                            completed ? Icons.undo : Icons.check,
-                            color: completed ? Colors.orange : Colors.green,
-                          ),
-                          tooltip: completed
-                              ? 'Mark as Incomplete'
-                              : 'Mark as Completed',
-                          onPressed: () {
-                            doc.reference.update({'isCompleted': !completed});
-                          },
-                        ),
+                        onPressed: () {
+                          doc.reference.update({'isCompleted': !completed});
+                        },
                       ),
-                    );
-                  }).toList(),
-                  const SizedBox(height: 16),
-                ],
+                      title: Text(name),
+                      subtitle: Text('$credit credit hours'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blueGrey),
+                        tooltip: 'Edit Course',
+                        onPressed: () => _showEditCourseDialog(context, doc),
+                      ),
+                    ),
+                  );
+                }).toList(),
               );
             }).toList(),
           );
