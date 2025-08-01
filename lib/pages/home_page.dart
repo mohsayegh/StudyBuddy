@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:studybuddy/widgets/habits_today_widget.dart';
+import 'package:studybuddy/widgets/upcoming_deadlines_widget.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -206,6 +208,16 @@ class _HomePageState extends State<HomePage> with RouteAware {
                   const SizedBox(height: 12),
                   Text('🎓 University: ${_userData?['university'] ?? '—'}'),
                   Text('🧠 Major: ${_userData?['major'] ?? '—'}'),
+                  const SizedBox(height: 12),
+                  SingleChildScrollView(
+                    child: Column(
+                      children: const [
+                        UpcomingDeadlinesWidget(),
+                        HabitsTodayWidget(),
+                        // ProgressSummaryWidget(), etc.
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
