@@ -10,14 +10,34 @@ class CoursesPage extends StatefulWidget {
 }
 
 class _CoursesPageState extends State<CoursesPage> {
-  late final String currentSemester;
+  String? currentSemester;
   final Set<String> expandedSemesters = {};
 
   @override
   void initState() {
     super.initState();
-    currentSemester = getCurrentSemesterKey();
-    expandedSemesters.add(currentSemester);
+    _loadCurrentSemester();
+  }
+
+  Future<void> _loadCurrentSemester() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+    final data = doc.data();
+    if (data != null && data['currentSemester'] != null) {
+      final term = data['currentSemester']['term'];
+      final year = data['currentSemester']['year'];
+      if (term != null && year != null) {
+        setState(() {
+          currentSemester = '$term $year';
+          expandedSemesters.add(currentSemester!);
+        });
+      }
+    }
   }
 
   String getCurrentSemesterKey() {
@@ -328,8 +348,15 @@ class _CoursesPageState extends State<CoursesPage> {
               return ExpansionTile(
                 title: Text(
                   semester,
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: TextStyle(
+                    fontSize: semester == currentSemester ? 22 : 18,
+                    fontWeight: FontWeight.w600,
+                    color: semester == currentSemester
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                  ),
                 ),
+
                 initiallyExpanded: expandedSemesters.contains(semester),
                 onExpansionChanged: (isExpanded) {
                   setState(() {

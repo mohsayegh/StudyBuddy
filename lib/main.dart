@@ -1,16 +1,23 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:studybuddy/firebase_options.dart';
-import 'package:studybuddy/pages/home_page.dart';
-import 'package:studybuddy/pages/login_page.dart';
-import 'package:studybuddy/pages/splash_screen.dart';
+import 'package:provider/provider.dart';
+import 'theme_provider.dart'; // your custom ThemeProvider file
+import 'firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+import 'pages/home_page.dart';
+import 'pages/login_page.dart';
+import 'pages/main_page.dart';
 
 void main() async {
-  WidgetsFlutterBinding();
+  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const ProviderScope(child: StudyBuddyApp()));
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: const StudyBuddyApp(),
+    ),
+  );
 }
 
 class StudyBuddyApp extends StatelessWidget {
@@ -18,19 +25,16 @@ class StudyBuddyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final RouteObserver<ModalRoute<void>> routeObserver =
-        RouteObserver<ModalRoute<void>>();
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return MaterialApp(
-      navigatorObservers: [routeObserver],
       title: 'StudyBuddy',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-      ),
+      theme: ThemeData.light(useMaterial3: true),
+      darkTheme: ThemeData.dark(useMaterial3: true),
+      themeMode: themeProvider.themeMode,
       initialRoute: '/',
       routes: {
-        '/': (context) => const SplashScreen(),
+        '/': (context) => const MainPage(),
         '/home': (context) => const HomePage(),
         '/login': (context) => const LoginPage(),
       },

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:studybuddy/pages/courses_page.dart';
+import 'package:studybuddy/pages/habits_page.dart';
+import 'package:studybuddy/pages/profile_page.dart';
 import 'home_page.dart';
 
 class MainPage extends StatefulWidget {
@@ -16,8 +18,8 @@ class _MainPageState extends State<MainPage> {
     const HomePage(),
     const CoursesPage(),
     const PlaceholderPage(title: 'Assignments'),
-    const PlaceholderPage(title: 'Habits'),
-    const PlaceholderPage(title: 'Profile'),
+    const HabitsPage(),
+    const ProfilePage(),
   ];
 
   void _onTap(int index) {

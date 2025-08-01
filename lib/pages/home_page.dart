@@ -130,20 +130,12 @@ class _HomePageState extends State<HomePage> with RouteAware {
     }
   }
 
-  void _logout() async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushReplacementNamed(context, '/');
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('StudyBuddy Home'),
         backgroundColor: const Color.fromARGB(255, 193, 191, 191),
-        actions: [
-          IconButton(onPressed: _logout, icon: const Icon(Icons.logout)),
-        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
