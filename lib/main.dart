@@ -18,7 +18,10 @@ class StudyBuddyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final RouteObserver<ModalRoute<void>> routeObserver =
+        RouteObserver<ModalRoute<void>>();
     return MaterialApp(
+      navigatorObservers: [routeObserver],
       title: 'StudyBuddy',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
