@@ -145,6 +145,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
     return Scaffold(
       appBar: AppBar(
         title: const Text('StudyBuddy Home'),
+        backgroundColor: const Color.fromARGB(255, 193, 191, 191),
         actions: [
           IconButton(onPressed: _logout, icon: const Icon(Icons.logout)),
         ],
@@ -218,7 +219,6 @@ class _HomePageState extends State<HomePage> with RouteAware {
                   const SizedBox(height: 12),
                   Text('🎓 University: ${_userData?['university'] ?? '—'}'),
                   Text('🧠 Major: ${_userData?['major'] ?? '—'}'),
-                  Text('📧 Email: ${_userData?['email'] ?? '—'}'),
                 ],
               ),
             ),

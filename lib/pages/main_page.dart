@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:studybuddy/pages/courses_page.dart';
 import 'home_page.dart';
 
 class MainPage extends StatefulWidget {
@@ -13,7 +14,7 @@ class _MainPageState extends State<MainPage> {
 
   final List<Widget> _pages = [
     const HomePage(),
-    const PlaceholderPage(title: 'Courses'),
+    const CoursesPage(),
     const PlaceholderPage(title: 'Assignments'),
     const PlaceholderPage(title: 'Habits'),
     const PlaceholderPage(title: 'Profile'),
@@ -57,7 +58,10 @@ class PlaceholderPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Text(title),
+        backgroundColor: const Color.fromARGB(255, 193, 191, 191),
+      ),
       body: Center(child: Text('TODO: $title Page')),
     );
   }
