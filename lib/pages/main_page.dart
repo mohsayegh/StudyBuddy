@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:studybuddy/pages/assignment_page.dart';
 import 'package:studybuddy/pages/courses_page.dart';
 import 'package:studybuddy/pages/habits_page.dart';
 import 'package:studybuddy/pages/profile_page.dart';
@@ -17,7 +18,7 @@ class _MainPageState extends State<MainPage> {
   final List<Widget> _pages = [
     const HomePage(),
     const CoursesPage(),
-    const PlaceholderPage(title: 'Assignments'),
+    const AssignmentPage(),
     const HabitsPage(),
     const ProfilePage(),
   ];

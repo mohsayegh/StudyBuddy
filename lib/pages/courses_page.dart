@@ -40,19 +40,196 @@ class _CoursesPageState extends State<CoursesPage> {
     }
   }
 
-  String getCurrentSemesterKey() {
-    final now = DateTime.now();
-    final year = now.year;
-    final month = now.month;
-    String term;
-    if (month >= 1 && month <= 4) {
-      term = 'Spring';
-    } else if (month >= 5 && month <= 7) {
-      term = 'Summer';
-    } else {
-      term = 'Fall';
+  double calculateGPA(List<QueryDocumentSnapshot> courses) {
+    double totalPoints = 0;
+    double totalCredits = 0;
+    for (var doc in courses) {
+      final data = doc.data() as Map<String, dynamic>;
+      final credit = (data['creditHours'] ?? 0).toDouble();
+      final grade = data['gpa'];
+      if (grade != null) {
+        totalPoints += grade * credit;
+        totalCredits += credit;
+      }
     }
-    return '$term $year';
+    return totalCredits == 0 ? 0.0 : totalPoints / totalCredits;
+  }
+
+  void _showAddCourseDialog(BuildContext context) {
+    final _nameController = TextEditingController();
+    final _creditController = TextEditingController();
+    final _gpaController = TextEditingController();
+    String? selectedTerm;
+    int? selectedYear;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add New Course'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Course Name'),
+                ),
+                TextField(
+                  controller: _creditController,
+                  decoration: const InputDecoration(labelText: 'Credit Hours'),
+                  keyboardType: TextInputType.number,
+                ),
+                TextField(
+                  controller: _gpaController,
+                  decoration: const InputDecoration(
+                    labelText: 'GPA (Optional)',
+                  ),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                ),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: 'Term'),
+                  value: selectedTerm,
+                  items: ['Spring', 'Summer', 'Fall']
+                      .map(
+                        (term) =>
+                            DropdownMenuItem(value: term, child: Text(term)),
+                      )
+                      .toList(),
+                  onChanged: (value) => selectedTerm = value,
+                ),
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Year'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (val) => selectedYear = int.tryParse(val),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final name = _nameController.text.trim();
+                final credit = int.tryParse(_creditController.text.trim());
+                final gpa = double.tryParse(_gpaController.text.trim());
+
+                if (name.isNotEmpty &&
+                    credit != null &&
+                    selectedTerm != null &&
+                    selectedYear != null) {
+                  await FirebaseFirestore.instance.collection('courses').add({
+                    'userId': FirebaseAuth.instance.currentUser?.uid,
+                    'name': name,
+                    'creditHours': credit,
+                    'gpa': gpa,
+                    'isCompleted': false,
+                    'semester': {'term': selectedTerm, 'year': selectedYear},
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditCourseDialog(BuildContext context, DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final _nameController = TextEditingController(text: data['name']);
+    final _creditController = TextEditingController(
+      text: data['creditHours'].toString(),
+    );
+    final _gpaController = TextEditingController(
+      text: data['gpa']?.toString() ?? '',
+    );
+    String selectedTerm = data['semester']['term'];
+    int selectedYear = data['semester']['year'];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Course'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Course Name'),
+                ),
+                TextField(
+                  controller: _creditController,
+                  decoration: const InputDecoration(labelText: 'Credit Hours'),
+                  keyboardType: TextInputType.number,
+                ),
+                TextField(
+                  controller: _gpaController,
+                  decoration: const InputDecoration(labelText: 'GPA'),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                ),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: 'Term'),
+                  value: selectedTerm,
+                  items: ['Spring', 'Summer', 'Fall']
+                      .map(
+                        (term) =>
+                            DropdownMenuItem(value: term, child: Text(term)),
+                      )
+                      .toList(),
+                  onChanged: (value) => selectedTerm = value ?? selectedTerm,
+                ),
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Year'),
+                  keyboardType: TextInputType.number,
+                  controller: TextEditingController(
+                    text: selectedYear.toString(),
+                  ),
+                  onChanged: (val) =>
+                      selectedYear = int.tryParse(val) ?? selectedYear,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final name = _nameController.text.trim();
+                final credit = int.tryParse(_creditController.text.trim());
+                final gpa = double.tryParse(_gpaController.text.trim());
+
+                if (name.isNotEmpty && credit != null) {
+                  await doc.reference.update({
+                    'name': name,
+                    'creditHours': credit,
+                    'gpa': gpa,
+                    'semester': {'term': selectedTerm, 'year': selectedYear},
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -66,228 +243,6 @@ class _CoursesPageState extends State<CoursesPage> {
     final coursesRef = FirebaseFirestore.instance
         .collection('courses')
         .where('userId', isEqualTo: uid);
-
-    void _showAddCourseDialog(BuildContext context) {
-      final _nameController = TextEditingController();
-      final _creditController = TextEditingController();
-      String? selectedTerm;
-      int? selectedYear;
-
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Add New Course'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Course Name'),
-                  ),
-                  TextField(
-                    controller: _creditController,
-                    decoration: const InputDecoration(
-                      labelText: 'Credit Hours',
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(labelText: 'Term'),
-                    value: selectedTerm,
-                    items: ['Spring', 'Summer', 'Fall']
-                        .map(
-                          (term) =>
-                              DropdownMenuItem(value: term, child: Text(term)),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      selectedTerm = value;
-                    },
-                  ),
-                  TextField(
-                    decoration: const InputDecoration(labelText: 'Year'),
-                    keyboardType: TextInputType.number,
-                    onChanged: (val) {
-                      selectedYear = int.tryParse(val);
-                    },
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  final name = _nameController.text.trim();
-                  final credit = int.tryParse(_creditController.text.trim());
-
-                  if (uid.isNotEmpty &&
-                      name.isNotEmpty &&
-                      credit != null &&
-                      selectedTerm != null &&
-                      selectedYear != null) {
-                    await FirebaseFirestore.instance.collection('courses').add({
-                      'userId': uid,
-                      'name': name,
-                      'creditHours': credit,
-                      'isCompleted': false,
-                      'semester': {'term': selectedTerm, 'year': selectedYear},
-                    });
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text('Add'),
-              ),
-            ],
-          );
-        },
-      );
-    }
-
-    void _showEditCourseDialog(BuildContext context, DocumentSnapshot doc) {
-      final data = doc.data() as Map<String, dynamic>;
-
-      final _nameController = TextEditingController(text: data['name']);
-      final _creditController = TextEditingController(
-        text: data['creditHours'].toString(),
-      );
-      String selectedTerm = data['semester']['term'];
-      int selectedYear = data['semester']['year'];
-
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Edit Course'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Course Name'),
-                  ),
-                  TextField(
-                    controller: _creditController,
-                    decoration: const InputDecoration(
-                      labelText: 'Credit Hours',
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(labelText: 'Term'),
-                    value: selectedTerm,
-                    items: ['Spring', 'Summer', 'Fall']
-                        .map(
-                          (term) =>
-                              DropdownMenuItem(value: term, child: Text(term)),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) selectedTerm = value;
-                    },
-                  ),
-                  TextField(
-                    decoration: const InputDecoration(labelText: 'Year'),
-                    keyboardType: TextInputType.number,
-                    controller: TextEditingController(
-                      text: selectedYear.toString(),
-                    ),
-                    onChanged: (val) => selectedYear = int.tryParse(val) ?? 0,
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text('Confirm Deletion'),
-                      content: const Text(
-                        'Are you sure you want to delete this course?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Delete'),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (confirm == true) {
-                    final deletedData = doc.data() as Map<String, dynamic>;
-                    final deletedRef = doc.reference;
-
-                    await deletedRef.delete();
-                    Navigator.pop(context);
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Course deleted'),
-                        backgroundColor: Colors.redAccent,
-                        action: SnackBarAction(
-                          label: 'Undo',
-                          textColor: Colors.white,
-                          onPressed: () async {
-                            await deletedRef.set(deletedData);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Course restored'),
-                                backgroundColor: Colors.green,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                        ),
-                        duration: const Duration(seconds: 5),
-                      ),
-                    );
-                  }
-                },
-                child: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  final name = _nameController.text.trim();
-                  final credit = int.tryParse(_creditController.text.trim());
-
-                  if (name.isNotEmpty && credit != null && selectedYear > 0) {
-                    await doc.reference.update({
-                      'name': name,
-                      'creditHours': credit,
-                      'semester': {'term': selectedTerm, 'year': selectedYear},
-                    });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Course updated'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        },
-      );
-    }
 
     return Scaffold(
       appBar: AppBar(
@@ -339,69 +294,100 @@ class _CoursesPageState extends State<CoursesPage> {
             grouped.putIfAbsent(semesterKey, () => []).add(doc);
           }
 
+          final allGpa = calculateGPA(docs);
+
           return ListView(
             padding: const EdgeInsets.all(8),
-            children: grouped.entries.map((entry) {
-              final semester = entry.key;
-              final semesterCourses = entry.value;
-
-              return ExpansionTile(
-                title: Text(
-                  semester,
-                  style: TextStyle(
-                    fontSize: semester == currentSemester ? 22 : 18,
-                    fontWeight: FontWeight.w600,
-                    color: semester == currentSemester
-                        ? Theme.of(context).colorScheme.primary
-                        : null,
+            children: [
+              Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                color: Theme.of(context).colorScheme.secondaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Overall GPA',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        allGpa.toStringAsFixed(2),
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
+              ...grouped.entries.map((entry) {
+                final semester = entry.key;
+                final semesterCourses = entry.value;
 
-                initiallyExpanded: expandedSemesters.contains(semester),
-                onExpansionChanged: (isExpanded) {
-                  setState(() {
-                    if (isExpanded) {
-                      expandedSemesters.add(semester);
-                    } else {
-                      expandedSemesters.remove(semester);
-                    }
-                  });
-                },
-                children: semesterCourses.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final name = data['name'] ?? 'Unnamed';
-                  final credit = data['creditHours'] ?? '?';
-                  final completed = data['isCompleted'] ?? false;
-
-                  return Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                return ExpansionTile(
+                  title: Text(
+                    semester,
+                    style: TextStyle(
+                      fontSize: semester == currentSemester ? 22 : 18,
+                      fontWeight: FontWeight.w600,
+                      color: semester == currentSemester
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
                     ),
-                    child: ListTile(
-                      leading: IconButton(
-                        icon: Icon(
-                          completed
-                              ? Icons.check_circle
-                              : Icons.radio_button_unchecked,
-                          color: completed ? Colors.green : null,
+                  ),
+                  initiallyExpanded: expandedSemesters.contains(semester),
+                  onExpansionChanged: (isExpanded) {
+                    setState(() {
+                      if (isExpanded) {
+                        expandedSemesters.add(semester);
+                      } else {
+                        expandedSemesters.remove(semester);
+                      }
+                    });
+                  },
+                  children: semesterCourses.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final name = data['name'] ?? 'Unnamed';
+                    final credit = data['creditHours'] ?? '?';
+                    final gpa = data['gpa'];
+                    final completed = data['isCompleted'] ?? false;
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: ListTile(
+                        leading: IconButton(
+                          icon: Icon(
+                            completed
+                                ? Icons.check_circle
+                                : Icons.radio_button_unchecked,
+                            color: completed ? Colors.green : null,
+                          ),
+                          onPressed: () =>
+                              doc.reference.update({'isCompleted': !completed}),
                         ),
-                        onPressed: () {
-                          doc.reference.update({'isCompleted': !completed});
-                        },
+                        title: Text(name),
+                        subtitle: Text(
+                          '$credit credit hours${gpa != null ? ' | GPA: $gpa' : ''}',
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blueGrey),
+                          tooltip: 'Edit Course',
+                          onPressed: () => _showEditCourseDialog(context, doc),
+                        ),
                       ),
-                      title: Text(name),
-                      subtitle: Text('$credit credit hours'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blueGrey),
-                        tooltip: 'Edit Course',
-                        onPressed: () => _showEditCourseDialog(context, doc),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              );
-            }).toList(),
+                    );
+                  }).toList(),
+                );
+              }),
+            ],
           );
         },
       ),
