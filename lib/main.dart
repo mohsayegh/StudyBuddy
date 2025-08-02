@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:studybuddy/pages/landing_page.dart';
 import 'theme_provider.dart'; // your custom ThemeProvider file
 import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -34,9 +35,10 @@ class StudyBuddyApp extends StatelessWidget {
       themeMode: themeProvider.themeMode,
       initialRoute: '/',
       routes: {
-        '/': (context) => const MainPage(),
+        '/': (context) => const LandingPage(),
         '/home': (context) => const HomePage(),
         '/login': (context) => const LoginPage(),
+        '/main': (context) => const MainPage(),
       },
     );
   }
