@@ -28,7 +28,6 @@ class _AssignmentPageState extends State<AssignmentPage> {
     final snapshot = await FirebaseFirestore.instance
         .collection('courses')
         .get();
-
     setState(() {
       _courses = snapshot.docs
           .map((doc) => {'id': doc.id, 'name': doc['name'] ?? 'Unnamed'})
@@ -43,159 +42,144 @@ class _AssignmentPageState extends State<AssignmentPage> {
 
     await showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add Assignment'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Title'),
+      builder: (context) => AlertDialog(
+        title: const Text('Add Assignment'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Title'),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2024),
+                    lastDate: DateTime(2030),
+                  );
+                  if (picked != null) selectedDate = picked;
+                },
+                child: const Text('Pick Due Date'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
+                value: selectedCourseId,
+                decoration: const InputDecoration(
+                  labelText: 'Course (optional)',
                 ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2024),
-                      lastDate: DateTime(2030),
-                    );
-                    if (picked != null) {
-                      selectedDate = picked;
-                    }
-                  },
-                  child: const Text('Pick Due Date'),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: selectedCourseId,
-                  decoration: const InputDecoration(
-                    labelText: 'Course (optional)',
-                  ),
-                  items: _courses
-                      .map(
-                        (course) => DropdownMenuItem<String>(
-                          value: course['id'],
-                          child: Text(course['name']),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    selectedCourseId = value;
-                  },
-                ),
-              ],
-            ),
+                items: _courses
+                    .map(
+                      (course) => DropdownMenuItem<String?>(
+                        value: course['id'],
+                        child: Text(course['name']),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => selectedCourseId = value,
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (titleController.text.isNotEmpty && selectedDate != null) {
-                  await assignmentsRef.add({
-                    'title': titleController.text,
-                    'dueDate': selectedDate,
-                    'courseId': selectedCourseId ?? '',
-                    'isCompleted': false,
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (titleController.text.isNotEmpty && selectedDate != null) {
+                await assignmentsRef.add({
+                  'title': titleController.text,
+                  'dueDate': selectedDate,
+                  'courseId': selectedCourseId ?? '',
+                  'isCompleted': false,
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
     );
   }
 
-  Future<void> _editAssignment(
-    String id,
-    Map<String, dynamic> currentData,
-  ) async {
-    final titleController = TextEditingController(text: currentData['title']);
-    DateTime selectedDate = (currentData['dueDate'] as Timestamp).toDate();
-    String selectedCourseId = currentData['courseId'] ?? '';
+  Future<void> _editAssignment(String id, Map<String, dynamic> data) async {
+    final titleController = TextEditingController(text: data['title']);
+    DateTime selectedDate = (data['dueDate'] as Timestamp).toDate();
+    String selectedCourseId = data['courseId'] ?? '';
 
     await showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Assignment'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Title'),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2024),
-                      lastDate: DateTime(2030),
-                    );
-                    if (picked != null) {
-                      selectedDate = picked;
-                    }
-                  },
-                  child: const Text('Pick New Due Date'),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: selectedCourseId.isEmpty ? null : selectedCourseId,
-                  decoration: const InputDecoration(labelText: 'Course'),
-                  items: _courses
-                      .map(
-                        (course) => DropdownMenuItem<String>(
-                          value: course['id'],
-                          child: Text(course['name']),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    selectedCourseId = value ?? '';
-                  },
-                ),
-              ],
-            ),
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Assignment'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Title'),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2024),
+                    lastDate: DateTime(2030),
+                  );
+                  if (picked != null) selectedDate = picked;
+                },
+                child: const Text('Pick New Due Date'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
+                value: selectedCourseId.isEmpty ? null : selectedCourseId,
+                decoration: const InputDecoration(labelText: 'Course'),
+                items: _courses
+                    .map(
+                      (course) => DropdownMenuItem<String?>(
+                        value: course['id'],
+                        child: Text(course['name']),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => selectedCourseId = value ?? '',
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (titleController.text.isNotEmpty) {
-                  await assignmentsRef.doc(id).update({
-                    'title': titleController.text,
-                    'dueDate': selectedDate,
-                    'courseId': selectedCourseId,
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (titleController.text.isNotEmpty) {
+                await assignmentsRef.doc(id).update({
+                  'title': titleController.text,
+                  'dueDate': selectedDate,
+                  'courseId': selectedCourseId,
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _confirmDelete(String id) async {
-    final shouldDelete = await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Assignment'),
@@ -213,10 +197,7 @@ class _AssignmentPageState extends State<AssignmentPage> {
         ],
       ),
     );
-
-    if (shouldDelete == true) {
-      await assignmentsRef.doc(id).delete();
-    }
+    if (confirm == true) await assignmentsRef.doc(id).delete();
   }
 
   Future<void> _toggleCompleted(String id, bool currentStatus) async {
@@ -248,21 +229,17 @@ class _AssignmentPageState extends State<AssignmentPage> {
             final data = doc.data() as Map<String, dynamic>;
             final courseId = data['courseId'] ?? '';
             final dueDate = (data['dueDate'] as Timestamp).toDate();
-
-            final matchesCourse =
+            final matchCourse =
                 _selectedCourseId == null || _selectedCourseId == courseId;
-
-            final matchesToday =
+            final matchToday =
                 !_onlyToday ||
                 (dueDate.year == DateTime.now().year &&
                     dueDate.month == DateTime.now().month &&
                     dueDate.day == DateTime.now().day);
-
-            return matchesCourse && matchesToday;
+            return matchCourse && matchToday;
           }).toList();
 
-          final Map<String, List<QueryDocumentSnapshot>> grouped = {};
-
+          final grouped = <String, List<QueryDocumentSnapshot>>{};
           for (var doc in filteredDocs) {
             final courseId =
                 (doc.data() as Map<String, dynamic>)['courseId'] ?? '';
@@ -272,41 +249,35 @@ class _AssignmentPageState extends State<AssignmentPage> {
           return Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(8),
                 child: Row(
                   children: [
                     Expanded(
-                      child: DropdownButton<String>(
+                      child: DropdownButton<String?>(
                         value: _selectedCourseId,
                         hint: const Text('Filter by course'),
                         isExpanded: true,
                         items: [
-                          const DropdownMenuItem(
+                          const DropdownMenuItem<String?>(
                             value: null,
                             child: Text('All Courses'),
                           ),
                           ..._courses.map(
-                            (course) => DropdownMenuItem(
-                              value: course['id'],
-                              child: Text(course['name']),
+                            (c) => DropdownMenuItem<String?>(
+                              value: c['id'],
+                              child: Text(c['name']),
                             ),
                           ),
                         ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCourseId = value;
-                          });
-                        },
+                        onChanged: (value) =>
+                            setState(() => _selectedCourseId = value),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Checkbox(
                       value: _onlyToday,
-                      onChanged: (val) {
-                        setState(() {
-                          _onlyToday = val ?? false;
-                        });
-                      },
+                      onChanged: (val) =>
+                          setState(() => _onlyToday = val ?? false),
                     ),
                     const Text('Today only'),
                   ],
@@ -320,77 +291,113 @@ class _AssignmentPageState extends State<AssignmentPage> {
                     : ListView(
                         children: grouped.entries.map((entry) {
                           final courseId = entry.key;
-                          final assignments = entry.value;
                           final courseName = _courses.firstWhere(
                             (c) => c['id'] == courseId,
                             orElse: () => {'name': 'No course'},
                           )['name'];
+                          final assignments = entry.value;
 
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  16,
-                                  16,
-                                  8,
-                                ),
-                                child: Text(
+                          return Container(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.secondary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
                                   '📘 $courseName',
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ),
-                              ...assignments.map((doc) {
-                                final data = doc.data() as Map<String, dynamic>;
-                                final title = data['title'] ?? '';
-                                final isCompleted =
-                                    data['isCompleted'] ?? false;
-                                final dueDate = (data['dueDate'] as Timestamp)
-                                    .toDate();
-                                final formattedDate =
-                                    '${dueDate.month}/${dueDate.day}/${dueDate.year}';
+                                const SizedBox(height: 12),
+                                ...assignments.map((doc) {
+                                  final data =
+                                      doc.data() as Map<String, dynamic>;
+                                  final title = data['title'] ?? '';
+                                  final isCompleted =
+                                      data['isCompleted'] ?? false;
+                                  final dueDate = (data['dueDate'] as Timestamp)
+                                      .toDate();
+                                  final formattedDate =
+                                      '${dueDate.month}/${dueDate.day}/${dueDate.year}';
 
-                                return ListTile(
-                                  title: Text(
-                                    title,
-                                    style: TextStyle(
-                                      decoration: isCompleted
-                                          ? TextDecoration.lineThrough
-                                          : null,
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
                                     ),
-                                  ),
-                                  subtitle: Text('Due: $formattedDate'),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Checkbox(
-                                        value: isCompleted,
-                                        onChanged: (_) => _toggleCompleted(
-                                          doc.id,
-                                          isCompleted,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Checkbox(
+                                          value: isCompleted,
+                                          onChanged: (_) => _toggleCompleted(
+                                            doc.id,
+                                            isCompleted,
+                                          ),
                                         ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.edit),
-                                        onPressed: () =>
-                                            _editAssignment(doc.id, data),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.delete,
-                                          color: Colors.red,
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                title,
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  decoration: isCompleted
+                                                      ? TextDecoration
+                                                            .lineThrough
+                                                      : null,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text('Due: $formattedDate'),
+                                            ],
+                                          ),
                                         ),
-                                        onPressed: () => _confirmDelete(doc.id),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
-                            ],
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(Icons.edit),
+                                              onPressed: () =>
+                                                  _editAssignment(doc.id, data),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.delete,
+                                                color: Colors.red,
+                                              ),
+                                              onPressed: () =>
+                                                  _confirmDelete(doc.id),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ],
+                            ),
                           );
                         }).toList(),
                       ),

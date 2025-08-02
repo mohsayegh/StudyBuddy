@@ -145,80 +145,87 @@ class _HomePageState extends State<HomePage> with RouteAware {
           ? Center(
               child: Text(_error!, style: const TextStyle(color: Colors.red)),
             )
-          : Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 24,
-                      horizontal: 20,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Center(
-                          child: Text(
-                            'Welcome back,',
-                            style: Theme.of(context).textTheme.titleMedium,
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 20,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey[50],
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Center(
+                            child: Text(
+                              'Welcome back,',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Center(
-                          child: Text(
-                            '${_userData?['name'] ?? 'Student'} 👋',
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.bold),
+                          const SizedBox(height: 4),
+                          Center(
+                            child: Text(
+                              '${_userData?['name'] ?? 'Student'} 👋',
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
                           ),
-                        ),
-                        if (!_quoteLoading && _quote != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: AnimatedOpacity(
-                              opacity: _quoteOpacity,
-                              duration: const Duration(milliseconds: 600),
-                              curve: Curves.easeInOut,
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 12),
-                                child: Text(
-                                  '"$_quote"',
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        fontStyle: FontStyle.italic,
-                                        color: Colors.grey[700],
-                                      ),
+                          if (!_quoteLoading && _quote != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: AnimatedOpacity(
+                                opacity: _quoteOpacity,
+                                duration: const Duration(milliseconds: 600),
+                                curve: Curves.easeInOut,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: Text(
+                                    '"$_quote"',
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          fontStyle: FontStyle.italic,
+                                          color: Colors.grey[700],
+                                        ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                  const SizedBox(height: 12),
-                  Text('🎓 University: ${_userData?['university'] ?? '—'}'),
-                  Text('🧠 Major: ${_userData?['major'] ?? '—'}'),
-                  const SizedBox(height: 12),
-                  SingleChildScrollView(
-                    child: Column(
-                      children: const [
-                        UpcomingDeadlinesWidget(),
-                        HabitsTodayWidget(),
-                        // ProgressSummaryWidget(), etc.
-                      ],
+                    const SizedBox(height: 12),
+                    Text('🎓 University: ${_userData?['university'] ?? '—'}'),
+                    Text('🧠 Major: ${_userData?['major'] ?? '—'}'),
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pushNamed(context, '/tasks');
+                            },
+                            child: const UpcomingDeadlinesWidget(),
+                          ),
+                          HabitsTodayWidget(),
+                          // ProgressSummaryWidget(), etc.
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
     );

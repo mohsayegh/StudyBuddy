@@ -13,34 +13,62 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  int _selectedIndex = 0;
+  final int _initialPage = 2; // Home is now index 2
+  late final PageController _pageController;
 
-  final List<Widget> _pages = [
-    const HomePage(),
-    const CoursesPage(),
-    const AssignmentPage(),
-    const HabitsPage(),
-    const ProfilePage(),
+  int _selectedIndex = 2;
+
+  final List<Widget> _pages = const [
+    CoursesPage(), // index 0
+    AssignmentPage(), // index 1
+    HomePage(), // index 2 — center
+    HabitsPage(), // index 3
+    ProfilePage(), // index 4
   ];
 
-  void _onTap(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   final List<BottomNavigationBarItem> _navItems = const [
-    BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
     BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Courses'),
     BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Tasks'),
+    BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
     BottomNavigationBarItem(icon: Icon(Icons.repeat), label: 'Habits'),
     BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _initialPage);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onTap(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        children: _pages,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onTap,
@@ -49,23 +77,6 @@ class _MainPageState extends State<MainPage> {
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
       ),
-    );
-  }
-}
-
-// Placeholder for not-yet-implemented pages
-class PlaceholderPage extends StatelessWidget {
-  final String title;
-  const PlaceholderPage({super.key, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: const Color.fromARGB(255, 193, 191, 191),
-      ),
-      body: Center(child: Text('TODO: $title Page')),
     );
   }
 }
