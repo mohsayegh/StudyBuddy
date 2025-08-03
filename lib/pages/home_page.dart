@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:studybuddy/widgets/habits_today_widget.dart';
 import 'package:studybuddy/widgets/upcoming_deadlines_widget.dart';
 
+import 'package:table_calendar/table_calendar.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -25,6 +27,8 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
   double _quoteOpacity = 0.0;
 
+  DateTime? _selectedDay;
+
   final RouteObserver<ModalRoute<void>> routeObserver =
       RouteObserver<ModalRoute<void>>();
 
@@ -33,6 +37,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
     super.initState();
     _loadUserProfile();
     _loadQuote();
+    _loadTasksFromFirestore();
   }
 
   @override
@@ -132,6 +137,44 @@ class _HomePageState extends State<HomePage> with RouteAware {
     }
   }
 
+  Map<DateTime, List<String>> _taskMap = {};
+
+  Future<void> _loadTasksFromFirestore() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('assignments')
+        .get();
+
+    final Map<DateTime, List<String>> tempMap = {};
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final title = data['title'] as String?;
+      final dueTimestamp = data['dueDate'] as Timestamp?;
+
+      if (title != null && dueTimestamp != null) {
+        final dueDate = dueTimestamp.toDate();
+        final key = DateTime.utc(dueDate.year, dueDate.month, dueDate.day);
+
+        if (!tempMap.containsKey(key)) {
+          tempMap[key] = [];
+        }
+        tempMap[key]!.add(title);
+      }
+    }
+
+    setState(() {
+      _taskMap = tempMap;
+    });
+  }
+
+  List<String> _getTasksForDay(DateTime day) {
+    final key = DateTime.utc(day.year, day.month, day.day);
+    return _taskMap[key] ?? [];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -213,6 +256,38 @@ class _HomePageState extends State<HomePage> with RouteAware {
                     SingleChildScrollView(
                       child: Column(
                         children: [
+                          const SizedBox(height: 20),
+                          TableCalendar(
+                            firstDay: DateTime.utc(2020, 1, 1),
+                            lastDay: DateTime.utc(2030, 12, 31),
+                            focusedDay: DateTime.now(),
+                            selectedDayPredicate: (day) =>
+                                isSameDay(_selectedDay, day),
+                            onDaySelected: (selectedDay, focusedDay) {
+                              setState(() {
+                                _selectedDay = selectedDay;
+                              });
+
+                              final tasks = _getTasksForDay(selectedDay);
+                              if (tasks.isNotEmpty) {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/tasks',
+                                  arguments:
+                                      selectedDay, // optional: pass the selected date
+                                );
+                              }
+                            },
+                            eventLoader: _getTasksForDay,
+                            calendarStyle: const CalendarStyle(
+                              markerDecoration: BoxDecoration(
+                                color: Colors.redAccent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
                           GestureDetector(
                             onTap: () {
                               Navigator.pushNamed(context, '/tasks');
@@ -220,7 +295,6 @@ class _HomePageState extends State<HomePage> with RouteAware {
                             child: const UpcomingDeadlinesWidget(),
                           ),
                           HabitsTodayWidget(),
-                          // ProgressSummaryWidget(), etc.
                         ],
                       ),
                     ),
