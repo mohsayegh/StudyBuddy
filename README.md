@@ -70,9 +70,9 @@ As a student, I was tired of using 3–4 different apps to manage my classes, ta
 Want to learn more or collaborate?
 
 - 📧 mohsayegh@gmail.com  
-- 💼 [LinkedIn]([https://www.linkedin.com/in/your-profile](https://www.linkedin.com/in/mohsayegh/))  
+- 💼 [LinkedIn](https://www.linkedin.com/in/your-profile](https://www.linkedin.com/in/mohsayegh)
 - 🐙 [GitHub](https://github.com/mohsayegh)
-
+  
 ---
 
 > © 2025 Mohammed A. – Built with 💙 and Flutter
