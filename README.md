@@ -61,7 +61,7 @@
 
 ## 🙋‍♂️ Why I Built This
 
-As a student, I was tired of using 3–4 different apps to manage my classes, tasks, and daily routines. So I built StudyBuddy to combine them all in one place. This project also helped me grow my skills in real-world app development — especially with Firebase, Flutter, and state management.
+As a student, I was tired of using 3 to 4 different apps to manage my classes, tasks, and daily routines. So I built StudyBuddy to combine them all in one place. This project also helped me grow my skills in real-world app development especially with Firebase, Flutter, and state management.
 
 ---
 
